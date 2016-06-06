@@ -1,13 +1,13 @@
 import os
 import time
 from slackclient import SlackClient
-
+import Common
 
 # starterbot's ID as an environment variable
-BOT_ID = os.environ.get("BOT_ID")
+# BOT_ID = os.environ.get("BOT_ID")
 
 # constants
-AT_BOT = "<@" + BOT_ID + ">:"
+# AT_BOT = "<@" + BOT_ID + ">:"
 EXAMPLE_COMMAND = "do"
 
 # instantiate Slack & Twilio clients
@@ -28,12 +28,13 @@ def handle_command(command, channel):
                           text=response, as_user=True)
 
 
-def parse_slack_output(slack_rtm_output):
+def parse_slack_output(slack_rtm_output,BOT_ID):
     """
         The Slack Real Time Messaging API is an events firehose.
         this parsing function returns None unless a message is
         directed at the Bot, based on its ID.
     """
+    AT_BOT = "<@" + BOT_ID + ">:"
     output_list = slack_rtm_output
     if output_list and len(output_list) > 0:
         for output in output_list:
@@ -46,10 +47,12 @@ def parse_slack_output(slack_rtm_output):
 
 if __name__ == "__main__":
     READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
+    BOT_ID = Common.get_BotID(os.environ.get('SLACK_BOT_TOKEN'))
     if slack_client.rtm_connect():
         print("StarterBot connected and running!")
         while True:
-            command, channel = parse_slack_output(slack_client.rtm_read())
+            command, channel = parse_slack_output(slack_client.rtm_read(),BOT_ID)
+            print command,channel
             if command and channel:
                 handle_command(command, channel)
             time.sleep(READ_WEBSOCKET_DELAY)
