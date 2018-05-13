@@ -64,14 +64,16 @@ def handle_command(channel, from_user, command):
         clear_restaurant(channel, command_arr[1])
         return
 
+    if len(command_arr) == 2 and command == 'orders' and command_arr[1] == 'cancel':
+        cancel_orders(channel, from_user)
+        return
+
     # Sends the response back to the channel
     slack_client.api_call(
         CHAT_POST_MESSAGE,
         channel=channel,
         text='Not sure what you mean'
     )
-
-
 
 #Custom defined commands
 
@@ -81,11 +83,11 @@ def handle_order(channel, from_user, meal, restaurant):
     slack_client.api_call(
         CHAT_POST_MESSAGE,
         channel=channel,
-        text='<@{0}> Order added :white_check_mark:'.format(from_user, meal, restaurant)
+        text='<@{0}> Order added :white_check_mark:'.format(from_user)
     )
 
 def summarize_restaurant(channel, restaurant):
-    if restaurant.lower() not in orders_dict:
+    if restaurant.lower() not in orders_dict or len(orders_dict[restaurant.lower()]) == 0:
         summarized = 'There are no orders from *{0}*'.format(restaurant)
     else :
         rest_dict = orders_dict[restaurant.lower()]
@@ -105,6 +107,26 @@ def summarize_restaurant(channel, restaurant):
         channel=channel,
         text=summarized
     )
+
+def cancel_orders(channel, from_user):
+    for rest_dict in orders_dict.values():
+        delete_meals = []
+        for meal_name, users in rest_dict.items():
+            if from_user in users:
+                users.remove(from_user)
+            if len(users) == 0:
+                delete_meals.append(meal_name)
+        
+        if len(delete_meals) > 0:
+            for meal in delete_meals:
+                del rest_dict[meal]
+    
+    slack_client.api_call(
+        CHAT_POST_MESSAGE,
+        channel=channel,
+        text='<@{0}> All orders canceled!'.format(from_user)
+    )
+
 
 def clear_restaurant(channel, restaurant):
     rest_lower = restaurant.lower()
