@@ -14,7 +14,7 @@ EXAMPLE_COMMAND = "do"
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 CHAT_POST_MESSAGE = 'chat.postMessage'
 
-ORDER_COMMAND_REGEX = '^order\s*(.*)from\s(\S*)'
+ORDER_COMMAND_REGEX = 'order\s*(.*?)\s*from\s*(\S*)'
 
 orders_dict = {}
 
@@ -67,17 +67,39 @@ def handle_command(channel, from_user, command):
     if len(command_arr) == 2 and command == 'orders' and command_arr[1] == 'cancel':
         cancel_orders(channel, from_user)
         return
+    
+    if len(command_arr) == 1 and command == 'help':
+        print_usage(channel)
+        return
 
     # Sends the response back to the channel
     slack_client.api_call(
         CHAT_POST_MESSAGE,
         channel=channel,
-        text='Not sure what you mean'
+        text='<@{0}> not sure what you mean. Try typing *help* to get the list of supported commands!'.format(from_user)
     )
+
+#Helpers
+
+def usage_description():
+    return ''.join([
+        '*Commands* and _arguments_ :fork_and_knife:\n\n',
+        '*order* _meal_ *from* _restaurant_\n',
+        '\t• Order meal from restaurant\n',
+        '*summarize* _restaurant_\n',
+        '\t• Summarize all orders from restaurant\n',
+        '*orders cancel*\n',
+        '\t • Cancel orders from user\n',
+        '*clear* _restaurant_\n',
+        '\t• Clear all orders from restaurant\n',
+        '*clear all*\n',
+        '\t• Clear all orders',
+    ])
 
 #Custom defined commands
 
 def handle_order(channel, from_user, meal, restaurant):
+    print("Handling order from restaurant:({0}) meal:({1})".format(restaurant, meal))
     add_order(from_user, meal, restaurant)
 
     slack_client.api_call(
@@ -100,7 +122,7 @@ def summarize_restaurant(channel, restaurant):
                 summarized += '<@{0}>'.format(u)
                 if not i == len(users) - 1:
                     summarized += ', '
-            summarized += ')'
+            summarized += ')\n'
     
     slack_client.api_call(
         CHAT_POST_MESSAGE,
@@ -149,6 +171,14 @@ def clear_all_restaurants(channel):
         CHAT_POST_MESSAGE,
         channel=channel,
         text='All orders cleared'
+    )
+
+def print_usage(channel):
+
+    slack_client.api_call(
+        CHAT_POST_MESSAGE,
+        channel=channel,
+        text=usage_description()
     )
 
 #Orders
