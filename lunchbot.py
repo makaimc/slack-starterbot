@@ -14,7 +14,9 @@ EXAMPLE_COMMAND = "do"
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 CHAT_POST_MESSAGE = 'chat.postMessage'
 
-ORDER_COMMAND_REGEX = 'order\s*(.*?)\s*from\s*(\S*)'
+ORDER_COMMAND_REGEX = 'order\s+([^0-9]*)\s+([0-9]*(?:,|.)?[0-9]*)\s*(?:kn)*\s*from\s+(\S*)'
+MEAL_DICT_KEY_USERS = 'users'
+MEAL_DICT_KEY_PRICE = 'price'
 
 orders_dict = {}
 
@@ -47,7 +49,16 @@ def handle_command(channel, from_user, command):
 
     matches = re.search(ORDER_COMMAND_REGEX, command)
     if matches:
-        handle_order(channel, from_user, matches.group(1).strip(), matches.group(2).strip())
+        meal = matches.group(1).strip()
+        restaurant = matches.group(3).strip()
+        try:
+            price = float(matches.group(2).strip().replace(',', '.'))
+        except:
+            price = 0.0
+
+        print('Order received:\nRestaurant: {0}\nMeal: {1}\nPrice: {2}\n'.format(restaurant, meal, price))
+
+        handle_order(channel, from_user, meal, price, restaurant)
         return
 
     command_arr = command.split()
@@ -98,9 +109,8 @@ def usage_description():
 
 #Custom defined commands
 
-def handle_order(channel, from_user, meal, restaurant):
-    print("Handling order from restaurant:({0}) meal:({1})".format(restaurant, meal))
-    add_order(from_user, meal, restaurant)
+def handle_order(channel, from_user, meal, price, restaurant):
+    add_order(from_user, meal, price, restaurant)
 
     slack_client.api_call(
         CHAT_POST_MESSAGE,
@@ -113,9 +123,16 @@ def summarize_restaurant(channel, restaurant):
         summarized = 'There are no orders from *{0}*'.format(restaurant)
     else :
         rest_dict = orders_dict[restaurant.lower()]
+        totalPrice = 0
+
         summarized = '*{0}:*\n'.format(restaurant)
-        for meal, users in rest_dict.items():
-            summarized += '_{0}_, x{1}'.format(meal, len(users))
+        for meal, meal_dict in rest_dict.items():
+            users = meal_dict[MEAL_DICT_KEY_USERS]
+            price = meal_dict[MEAL_DICT_KEY_PRICE]
+            num_orders = len(users)
+            totalPrice += price * num_orders
+
+            summarized += '_{0}_, *{1}kn* x{2}'.format(meal, price, num_orders)
             summarized += ' ('
             for i in range(len(users)):
                 u = users[i]
@@ -123,6 +140,8 @@ def summarize_restaurant(channel, restaurant):
                 if not i == len(users) - 1:
                     summarized += ', '
             summarized += ')\n'
+        
+        summarized += '\n_Total:_ *{0}kn*'.format(totalPrice)
     
     slack_client.api_call(
         CHAT_POST_MESSAGE,
@@ -133,7 +152,8 @@ def summarize_restaurant(channel, restaurant):
 def cancel_orders(channel, from_user):
     for rest_dict in orders_dict.values():
         delete_meals = []
-        for meal_name, users in rest_dict.items():
+        for meal_name, meal_dict in rest_dict.items():
+            users = meal_dict[MEAL_DICT_KEY_USERS]
             if from_user in users:
                 users.remove(from_user)
             if len(users) == 0:
@@ -183,7 +203,7 @@ def print_usage(channel):
 
 #Orders
 
-def add_order(from_user, meal, restaurant):
+def add_order(from_user, meal, price, restaurant):
     rest_lower = restaurant.lower()
     if rest_lower not in orders_dict:
         orders_dict[rest_lower] = {}
@@ -191,10 +211,13 @@ def add_order(from_user, meal, restaurant):
     rest_dict = orders_dict[rest_lower]
 
     if meal not in rest_dict:
-        rest_dict[meal] = []
+        rest_dict[meal] = { MEAL_DICT_KEY_PRICE : 0.0,
+                            MEAL_DICT_KEY_USERS : [] }
 
-    meals_arr = rest_dict[meal]
-    meals_arr.append(from_user)
+    meals_dict = rest_dict[meal]
+    meals_dict[MEAL_DICT_KEY_USERS].append(from_user)
+    if not price == 0:
+        meals_dict[MEAL_DICT_KEY_PRICE] = price
 
 if __name__ == "__main__":
     if slack_client.rtm_connect(with_team_state=False):
