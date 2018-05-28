@@ -62,24 +62,27 @@ def handle_command(channel, from_user, command):
         return
 
     command_arr = command.split()
+    command_arr_len = len(command_arr)
     command = command_arr[0]
-    if len(command_arr) == 2 and command == 'summarize':
-        summarize_restaurant(channel, command_arr[1])
+
+    if (command_arr_len == 1 or command_arr_len == 2) and command == 'summarize':
+        restaurant = command_arr[1] if command_arr_len > 1 else None
+        summarize_restaurant(channel, restaurant)
         return
 
-    if len(command_arr) == 2 and command == 'clear' and command_arr[1] == 'all':
+    if command_arr_len == 2 and command == 'clear' and command_arr[1] == 'all':
         clear_all_restaurants(channel)
         return
     
-    if len(command_arr) == 2 and command == 'clear':
+    if command_arr_len == 2 and command == 'clear':
         clear_restaurant(channel, command_arr[1])
         return
 
-    if len(command_arr) == 2 and command == 'orders' and command_arr[1] == 'cancel':
+    if command_arr_len == 2 and command == 'orders' and command_arr[1] == 'cancel':
         cancel_orders(channel, from_user)
         return
     
-    if len(command_arr) == 1 and command == 'help':
+    if command_arr_len == 1 and command == 'help':
         print_usage(channel)
         return
 
@@ -119,7 +122,9 @@ def handle_order(channel, from_user, meal, price, restaurant):
     )
 
 def summarize_restaurant(channel, restaurant):
-    if restaurant.lower() not in orders_dict or len(orders_dict[restaurant.lower()]) == 0:
+    if restaurant == None:
+        summarized = 'Please specify restaurant name'
+    elif restaurant.lower() not in orders_dict or len(orders_dict[restaurant.lower()]) == 0:
         summarized = 'There are no orders from *{0}*'.format(restaurant)
     else :
         rest_dict = orders_dict[restaurant.lower()]
