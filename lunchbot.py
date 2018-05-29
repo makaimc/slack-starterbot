@@ -1,6 +1,7 @@
 import os
 import time
 import re
+import textwrap
 from slackclient import SlackClient
 
 # instantiate Slack client
@@ -99,21 +100,21 @@ def handle_command(channel, from_user, command):
 #Helpers
 
 def usage_description():
-    return ''.join([
-        '*Commands* and _arguments_ :fork_and_knife:\n\n',
-        '*order* _meal_ *from* _restaurant_\n',
-        '\t• Order meal from restaurant\n',
-        '*summarize* _restaurant\n',
-        '\t• Summarize all orders from restaurant\n',
-        '*summarize all*\n',
-        '\t• Summarize orders from all restaurants\n'
-        '*orders cancel*\n',
-        '\t • Cancel orders from user\n',
-        '*clear* _restaurant_\n',
-        '\t• Clear all orders from restaurant\n',
-        '*clear all*\n',
-        '\t• Clear all orders',
-    ])
+    return textwrap.dedent("""
+        *Commands* and _arguments_ :fork_and_knife:\n
+        *order* _meal_ *from* _restaurant_
+        \t• Order meal from restaurant
+        *summarize* _restaurant_
+        \t• Summarize all orders from restaurant
+        *summarize all*
+        \t• Summarize orders from all restaurants
+        *orders cancel*
+        \t • Cancel orders from user
+        *clear* _restaurant_
+        \t• Clear all orders from restaurant
+        *clear all*
+        \t• Clear all orders
+        """)
 
 #Custom defined commands
 
