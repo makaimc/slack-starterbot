@@ -14,6 +14,7 @@ RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
 EXAMPLE_COMMAND = "do"
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 CHAT_POST_MESSAGE = 'chat.postMessage'
+REACTION_ADD = 'reactions.add'
 
 ORDER_COMMAND_REGEX = 'order\s+([^0-9]*)\s+([0-9]*(?:,|.)?[0-9]*)\s*(?:kn)*\s*from\s+(\S*)'
 MEAL_DICT_KEY_USERS = 'users'
@@ -31,8 +32,8 @@ def parse_bot_commands(slack_events):
         if event["type"] == "message" and not "subtype" in event:
             user_id, message = parse_direct_mention(event["text"])
             if user_id == starterbot_id:
-                return message, event["channel"], event["user"]
-    return None, None, None
+                return message, event["ts"], event["channel"], event["user"]
+    return None, None, None, None
 
 def parse_direct_mention(message_text):
     """
@@ -43,7 +44,7 @@ def parse_direct_mention(message_text):
     # the first group contains the username, the second group contains the remaining message
     return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
 
-def handle_command(channel, from_user, command):
+def handle_command(channel, timestamp, from_user, command):
     """
         Executes bot command if the command is known
     """
@@ -59,7 +60,7 @@ def handle_command(channel, from_user, command):
 
         print('Order received:\nRestaurant: {0}\nMeal: {1}\nPrice: {2}\n'.format(restaurant, meal, price))
 
-        handle_order(channel, from_user, meal, price, restaurant)
+        handle_order(channel, timestamp, from_user, meal, price, restaurant)
         return
 
     command_arr = command.split()
@@ -118,13 +119,14 @@ def usage_description():
 
 #Custom defined commands
 
-def handle_order(channel, from_user, meal, price, restaurant):
+def handle_order(channel, timestamp, from_user, meal, price, restaurant):
     add_order(from_user, meal, price, restaurant)
 
     slack_client.api_call(
-        CHAT_POST_MESSAGE,
+        REACTION_ADD,
         channel=channel,
-        text='<@{0}> Order added :white_check_mark:'.format(from_user)
+        timestamp=timestamp,
+        name="white_check_mark"
     )
 
 def summarize_restaurant(channel, restaurant):
@@ -242,9 +244,9 @@ if __name__ == "__main__":
         # Read bot's user ID by calling Web API method `auth.test`
         starterbot_id = slack_client.api_call("auth.test")["user_id"]
         while True:
-            command, channel, from_user = parse_bot_commands(slack_client.rtm_read())
+            command, timestamp, channel, from_user = parse_bot_commands(slack_client.rtm_read())
             if command:
-                handle_command(channel, from_user, command)
+                handle_command(channel, timestamp, from_user, command)
             time.sleep(RTM_READ_DELAY)
     else:
         print("Connection failed. Exception traceback printed above.")
