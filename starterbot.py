@@ -80,8 +80,11 @@ def get_list_of_channels():
 
     print("menber of {} channels: {}".format(len(g_member_channel), ",".join([c['name'] for c in g_member_channel])))
 
+
 def check_if_member(channel):
+    """ checking if the bot is member of a given channel """
     return channel in [channel['id'] for channel in g_member_channel]
+
 
 def parse_events_in_channel(events):
     # print("DEBUG: my channels: {}".format(g_member_channel))
@@ -107,11 +110,14 @@ def analyse_message(message):
     pattern = '(INC000[0-9]{1})'
     matchs = []
     for i in finditer(pattern, message):
-        matchs.append(i.group(1))
+        value = i.group(1)
+        if value not in matchs:
+            matchs.append(value)
 
     if not len(matchs):
         return 
-    return "I can see:\n{}".format("\n".join(matchs))
+    formatted_messages = ["<http://example.com/{}|{}>".format(m, m) for m in matchs]
+    return "I can see:\n{}".format("\n".join(formatted_messages))
 
 
 def respond_in_thread(channel, thread_ts, message):
