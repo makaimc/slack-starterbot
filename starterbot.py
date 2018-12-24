@@ -3,6 +3,7 @@ import time
 from re import finditer, search
 from slackclient import SlackClient
 # from pprint import pprint
+from bot import message
 
 
 # instantiate Slack client
@@ -56,13 +57,17 @@ def check_if_member(channel):
 
 
 def parse_events_in_channel(events):
+    """
+    Selecting events of type message with no subtype
+    which are posted in channel where the bot is
+    """
     # print("DEBUG: my channels: {}".format(g_member_channel))
     for event in events:
         # pprint(event)
         # Parsing only messages in the channels where the bot is member
         if event["type"] != "message" or "subtype" in event or \
            not check_if_member(event["channel"]):
-            print("not for me: type:{}".format(event))
+            # print("not for me: type:{}".format(event))
             continue
 
         # analyse message to see if we can suggest some links
@@ -71,11 +76,15 @@ def parse_events_in_channel(events):
         thread_ts = event['ts']
         if 'thread_ts' in event.keys():
             thread_ts = event['thread_ts']
-        return event["channel"], thread_ts, analysed_message
-    return None, None, None
+        return message(event["channel"], thread_ts, analysed_message)
+    return message(None, None, None)
 
 
 def analyse_message(message):
+    """
+    find matching sub string in the message and
+    returns a list of formatted links
+    """
     pattern = LINK_PATTERN
     matchs = []
     for i in finditer(pattern, message):
@@ -89,27 +98,30 @@ def analyse_message(message):
     return "\n".join(formatted_messages)
 
 
-def respond_in_thread(channel, thread_ts, message):
-    # Sends the response back to the channel
+def respond_in_thread(bot_message):
+    """Sends the response back to the channel"""
     slack_client.api_call(
         "chat.postMessage",
-        channel=channel,
-        thread_ts=thread_ts,
-        text=message
+        channel=bot_message.channel,
+        thread_ts=bot_message.thread_ts,
+        text=bot_message.message
     )
+
+
+def bot_loop(slack_client):
+    # Read bot's user ID by calling Web API method `auth.test`
+    slack_client.api_call("auth.test")["user_id"]
+    while True:
+        bot_message = parse_events_in_channel(slack_client.rtm_read())
+        if bot_message.channel:
+            respond_in_thread(bot_message)
+        time.sleep(RTM_READ_DELAY)
 
 
 if __name__ == "__main__":
     if slack_client.rtm_connect(with_team_state=False):
         print("Starter Bot connected and running!")
         get_list_of_channels()
-
-        # Read bot's user ID by calling Web API method `auth.test`
-        starterbot_id = slack_client.api_call("auth.test")["user_id"]
-        while True:
-            channel, thread_ts, message = parse_events_in_channel(slack_client.rtm_read())
-            if channel:
-                respond_in_thread(channel, thread_ts, message)
-            time.sleep(RTM_READ_DELAY)
+        bot_loop(slack_client)
     else:
         print("Connection failed. Exception traceback printed above.")
