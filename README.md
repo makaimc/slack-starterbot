@@ -9,6 +9,7 @@
 Just a bot responding with links for given pattern
 
 # Improvment list
+- avoid posting multiple time the same link in a given thread
 - add test coverage
 - add logging
 - connect to externals system to get details related to the link provided
