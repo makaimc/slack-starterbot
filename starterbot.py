@@ -2,7 +2,6 @@ import os
 import time
 from re import finditer, search
 from slackclient import SlackClient
-
 # from pprint import pprint
 
 
@@ -12,8 +11,7 @@ slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 starterbot_id = None
 
 # constants
-RTM_READ_DELAY = 1  # 1 second delay between reading from RTM
-EXAMPLE_COMMAND = "do"
+RTM_READ_DELAY = 2  # 1 second delay between reading from RTM
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 LINK_URL = "http://example.com/"
 LINK_PATTERN = "(INC000[0-9]{1})"
@@ -88,7 +86,7 @@ def analyse_message(message):
     if not len(matchs):
         return
     formatted_messages = ["<{}{}|{}>".format(LINK_URL,m, m) for m in matchs]
-    return "Those ?\n{}".format("\n".join(formatted_messages))
+    return "\n".join(formatted_messages)
 
 
 def respond_in_thread(channel, thread_ts, message):
