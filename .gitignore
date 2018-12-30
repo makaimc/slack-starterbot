@@ -68,3 +68,4 @@ target/
 .env
 
 slackbot_env
+env_var.sh

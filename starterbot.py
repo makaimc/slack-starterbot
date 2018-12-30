@@ -1,9 +1,11 @@
+
+
 import os
 import time
 from re import finditer, search
 from slackclient import SlackClient
 # from pprint import pprint
-from bot import message
+from bot.message import Message
 
 
 # instantiate Slack client
@@ -14,7 +16,7 @@ starterbot_id = None
 # constants
 RTM_READ_DELAY = 2  # 1 second delay between reading from RTM
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
-LINK_URL = "http://example.com/"
+LINK_URL = "http://example.com/myValue={}"
 LINK_PATTERN = "(INC000[0-9]{1})"
 
 # list of channel the bot is member of
@@ -76,8 +78,8 @@ def parse_events_in_channel(events):
         thread_ts = event['ts']
         if 'thread_ts' in event.keys():
             thread_ts = event['thread_ts']
-        return message(event["channel"], thread_ts, analysed_message)
-    return message(None, None, None)
+        return Message(event["channel"], thread_ts, analysed_message)
+    return Message(None, None, None)
 
 
 def analyse_message(message):
@@ -94,12 +96,15 @@ def analyse_message(message):
 
     if not len(matchs):
         return
-    formatted_messages = ["<{}{}|{}>".format(LINK_URL,m, m) for m in matchs]
+
+    formatted_messages = ["<{}|{}>".format(LINK_URL.format(m), m) for m in matchs]
     return "\n".join(formatted_messages)
 
 
 def respond_in_thread(bot_message):
-    """Sends the response back to the channel"""
+    """Sends the response back to the channel
+    în a thread
+    """
     slack_client.api_call(
         "chat.postMessage",
         channel=bot_message.channel,
