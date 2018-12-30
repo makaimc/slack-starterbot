@@ -18,8 +18,8 @@ class Bot:
         # constants
         self.RTM_READ_DELAY = 2  # 1 second delay between reading from RTM
         self.MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
-        self.LINK_URL = "http://example.com/myValue={}"
-        self.LINK_PATTERN = "(INC000[0-9]{1})"
+        self.LINK_URL = conf.link_url
+        self.MATCH_PATTERN = conf.match_pattern
 
         # list of channel the bot is member of
         self.g_member_channel = []
@@ -100,7 +100,7 @@ class Bot:
         find matching sub string in the message and
         returns a list of formatted links
         """
-        pattern = self.LINK_PATTERN
+        pattern = self.MATCH_PATTERN
         matchs = []
         for i in finditer(pattern, message):
             value = i.group(1)
