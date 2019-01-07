@@ -1,5 +1,7 @@
 from time import sleep
 from re import search, finditer
+from copy import copy
+# from pprint import pprint
 
 from slackclient import SlackClient
 
@@ -23,6 +25,9 @@ class Bot:
 
         # list of channel the bot is member of
         self.g_member_channel = []
+
+        # context: in which thread the link was already provided
+        self.message_context = {}
 
     def chat(self):
         if self.slack_client.rtm_connect(with_team_state=False):
@@ -64,7 +69,7 @@ class Bot:
         # print("available channels:")
         # pprint(channels)
 
-        print("menber of {} channels: {}"
+        print("I am member of {} channels: {}"
               .format(len(self.g_member_channel),
                       ",".join([c['name'] for c in self.g_member_channel])))
 
@@ -92,7 +97,11 @@ class Bot:
             thread_ts = event['ts']
             if 'thread_ts' in event.keys():
                 thread_ts = event['thread_ts']
-            return Message(event["channel"], thread_ts, analysed_message)
+            analysed_message_no_repeat = self.dont_repeat_in_thread(analysed_message, thread_ts)
+            if not analysed_message_no_repeat:
+                return Message(None, None, None)
+            return Message(event["channel"], thread_ts,
+                           analysed_message_no_repeat, self.LINK_URL)
         return Message(None, None, None)
 
     def analyse_message(self, message):
@@ -110,16 +119,33 @@ class Bot:
         if not len(matchs):
             return
 
-        formatted_messages = ["<{}|{}>".format(self.LINK_URL.format(m), m) for m in matchs]
-        return "\n".join(formatted_messages)
+        return matchs
+
+    def dont_repeat_in_thread(self, analysed_messages, thread_ts):
+        """ Remove message from analysed message if it was already sent in the same
+        message thread.
+        """
+        # pprint(self.message_context)
+        no_repeat_messages = copy(analysed_messages)
+        for message in analysed_messages:
+            if thread_ts in self.message_context.keys():
+                if message in self.message_context[thread_ts]:
+                    no_repeat_messages.remove(message)
+        return no_repeat_messages
 
     def respond_in_thread(self, bot_message):
         """Sends the response back to the channel
         în a thread
         """
+        # Add message to the message context to avoid
+        # repeating same message in a thread
+        if bot_message.thread_ts not in self.message_context.keys():
+            self.message_context[bot_message.thread_ts] = []
+        self.message_context[bot_message.thread_ts].extend(bot_message.raw_message)
+
         self.slack_client.api_call(
             "chat.postMessage",
             channel=bot_message.channel,
             thread_ts=bot_message.thread_ts,
-            text=bot_message.message
+            text=bot_message.formatted_message
         )
