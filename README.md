@@ -4,6 +4,7 @@
 	- [Installation](#installation)
 	- [Env var setup](#env-var-setup)
 - [Getting the bot running](#getting-the-bot-running)
+- [Start with docker](#start-with-docker)
 - [Improvment list](#improvment-list)
 - [References: slack-starterbot](#references-slack-starterbot)
 
@@ -46,10 +47,21 @@ I am member of 2 channels: test,demo
 
 ```
 
+# Start with docker 
+```
+docker build . -t slack-bot-linker:0.0.6
+
+docker run -d -t -i \
+-e SLACK_BOT_TOKEN="xoxb-xxxxxx" \
+-e LINK_URL="http://example.com/?link={}" \
+-e MATCH_PATTERN="(bla[0-9]{12})"\
+--name slack-bot-linker-v6 slack-bot-linker:0.0.6
+```
+
 # Improvment list
-- run in a docker image (suitable for openshift)
+- (/) run in a docker image (suitable for openshift)
 - (/) avoid posting multiple time the same link in a given thread
-- get link pattern from environment variable
+- (/) get link pattern from environment variable
 - add test coverage
 - add logging
 - connect to externals system to get details related to the link provided

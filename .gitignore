@@ -69,3 +69,4 @@ target/
 
 slackbot_env
 env_var.sh
+botenv
